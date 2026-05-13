@@ -1,0 +1,25 @@
+# Robotics Final Project
+
+Autonomous obstacle avoidance robot using Arduino Uno and ESP32 IoT communication.
+
+## Project Architecture
+
+### Arduino Uno
+Handles:
+- motor control
+- ultrasonic sensor
+- servo scanning
+- obstacle avoidance logic
+
+### ESP32
+Handles:
+- WiFi connection
+- MQTT communication
+- IoT monitoring/dashboard
+
+### Communication
+Arduino Uno and ESP32 communicate using UART serial communication.
+
+Example message:
+```text
+DIST=18,MODE=AUTO,TURN=LEFT

@@ -5,7 +5,11 @@
   "parts": [
     { "type": "wokwi-arduino-uno", "id": "uno", "top": 0, "left": 0, "attrs": {} },
     { "type": "wokwi-hc-sr04", "id": "ultrasonic", "top": -150, "left": 150, "attrs": {} },
-    { "type": "wokwi-servo", "id": "servo", "top": 100, "left": 150, "attrs": {} }
+    { "type": "wokwi-servo", "id": "servo", "top": 100, "left": 150, "attrs": {} },
+    { "type": "wokwi-motor", "id": "motor_FL", "top": -50, "left": -200, "attrs": {} },
+    { "type": "wokwi-motor", "id": "motor_BL", "top": 100, "left": -200, "attrs": {} },
+    { "type": "wokwi-motor", "id": "motor_FR", "top": -50, "left": 250, "attrs": {} },
+    { "type": "wokwi-motor", "id": "motor_BR", "top": 100, "left": 250, "attrs": {} }
   ],
   "connections": [
     [ "ultrasonic:VCC", "uno:5V", "red", [ "v0" ] ],
@@ -14,6 +18,16 @@
     [ "ultrasonic:ECHO", "uno:10", "blue", [ "v0" ] ],
     [ "servo:V+", "uno:5V", "red", [ "v0" ] ],
     [ "servo:GND", "uno:GND", "black", [ "v0" ] ],
-    [ "servo:PWM", "uno:11", "yellow", [ "v0" ] ]
+    [ "servo:PWM", "uno:11", "yellow", [ "v0" ] ],
+    
+    [ "motor_FL:1", "uno:2", "orange", [ "v0" ] ],
+    [ "motor_FL:2", "uno:3", "orange", [ "v0" ] ],
+    [ "motor_BL:1", "uno:2", "orange", [ "v0" ] ],
+    [ "motor_BL:2", "uno:3", "orange", [ "v0" ] ],
+    
+    [ "motor_FR:1", "uno:4", "purple", [ "v0" ] ],
+    [ "motor_FR:2", "uno:7", "purple", [ "v0" ] ],
+    [ "motor_BR:1", "uno:4", "purple", [ "v0" ] ],
+    [ "motor_BR:2", "uno:7", "purple", [ "v0" ] ]
   ]
 }

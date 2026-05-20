@@ -1,21 +1,37 @@
-#include <Arduino.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
 
-// WiFi
+/*
+========================================
+   GROUP 2 ROBOTICS
+   ESP32 MQTT IOT CONTROLLER
+========================================
+*/
+
+// ================= WIFI CONFIG =================
+
 const char* ssid = "Wokwi-GUEST";
 const char* password = "";
 
-// MQTT Broker
+// ================= MQTT CONFIG =================
+
 const char* mqtt_server = "broker.hivemq.com";
+
+#define LED 2
 
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-// Connect WiFi
+// MQTT Topics
+const char* topic_control = "grup2/device1/control";
+const char* topic_status  = "grup2/device1/status";
+
+// ================= WIFI CONNECT =================
+
 void setup_wifi() {
+
   Serial.println();
-  Serial.print("Connecting to WiFi");
+  Serial.print("Connecting WiFi");
 
   WiFi.begin(ssid, password);
 
@@ -24,103 +40,107 @@ void setup_wifi() {
     Serial.print(".");
   }
 
-  Serial.println();
-  Serial.println("WiFi connected!");
+  Serial.println("\n✅ WiFi Connected");
   Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
 }
 
-// Connect MQTT
+// ================= MQTT CALLBACK =================
+
+void callback(char* topic, byte* payload, unsigned int length) {
+
+  Serial.println("\n📩 MQTT Message Received");
+
+  String message = "";
+
+  for (unsigned int i = 0; i < length; i++) {
+    message += (char)payload[i];
+  }
+
+  Serial.print("Topic   : ");
+  Serial.println(topic);
+
+  Serial.print("Message : ");
+  Serial.println(message);
+
+  // ===== LED CONTROL =====
+
+  if (message == "ON") {
+
+    digitalWrite(LED, HIGH);
+    Serial.println("💡 LED ON");
+
+    client.publish(topic_status, "LED ON");
+  }
+
+  else if (message == "OFF") {
+
+    digitalWrite(LED, LOW);
+    Serial.println("💡 LED OFF");
+
+    client.publish(topic_status, "LED OFF");
+  }
+}
+
+// ================= MQTT RECONNECT =================
+
 void reconnect() {
+
   while (!client.connected()) {
-    Serial.print("Connecting to MQTT...");
 
-    if (client.connect("ESP32RobotClient")) {
-      Serial.println("connected!");
+    Serial.print("Connecting MQTT...");
+
+    String clientId = "ESP32-Grup2-";
+    clientId += String(random(0xffff), HEX);
+
+    if (client.connect(clientId.c_str())) {
+
+      Serial.println("✅ MQTT Connected");
+
+      client.subscribe(topic_control);
+      client.publish(topic_status, "Device Online");
+
+      Serial.println("Subscribed to control topic");
+
     } else {
-      Serial.print("failed, rc=");
-      Serial.println(client.state());
 
-      delay(2000);
+      Serial.print("Failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" retry in 5 sec");
+
+      delay(5000);
     }
   }
 }
 
+// ================= SETUP =================
+
 void setup() {
+
   Serial.begin(115200);
+  delay(1500);
 
-  Serial2.begin(9600);
+  Serial.println("\n=================================");
+  Serial.println(" GROUP 2 ROBOTICS STARTING...");
+  Serial.println(" ESP32 MQTT DEVICE ONLINE");
+  Serial.println("=================================");
 
-  delay(1000);
-
-  Serial.println("ESP32 ROBOT IOT START");
+  pinMode(LED, OUTPUT);
+  digitalWrite(LED, LOW);
 
   setup_wifi();
 
   client.setServer(mqtt_server, 1883);
+  client.setCallback(callback);
 }
 
+// ================= LOOP =================
+
 void loop() {
+
   if (!client.connected()) {
     reconnect();
   }
 
   client.loop();
-
-  // Simulated data from Arduino Uno
-String robotData = "";
-
-if (Serial2.available()) {
-  robotData = Serial2.readStringUntil('\n');
-
-  Serial.println("Received from Uno:");
-  Serial.println(robotData);
-}
-
-  // Variables
-  String distance = "";
-  String mode = "";
-  String turn = "";
-
-  // Parsing
-  int dIndex = robotData.indexOf("DIST=");
-  int mIndex = robotData.indexOf("MODE=");
-  int tIndex = robotData.indexOf("TURN=");
-
-  if (dIndex >= 0 && mIndex >= 0 && tIndex >= 0) {
-
-    distance =
-      robotData.substring(dIndex + 5,
-      robotData.indexOf(",", dIndex));
-
-    mode =
-      robotData.substring(mIndex + 5,
-      robotData.indexOf(",", mIndex));
-
-    turn =
-      robotData.substring(tIndex + 5);
-
-    // Publish parsed data
-    client.publish(
-      "faridrobot/distance",
-      distance.c_str()
-    );
-
-    client.publish(
-      "faridrobot/mode",
-      mode.c_str()
-    );
-
-    client.publish(
-      "faridrobot/turn",
-      turn.c_str()
-    );
-
-    Serial.println("Parsed MQTT Publish:");
-    Serial.println(distance);
-    Serial.println(mode);
-    Serial.println(turn);
-  }
-
-  delay(5000);
 }

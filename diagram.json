@@ -6,10 +6,11 @@
     { "type": "wokwi-arduino-uno", "id": "uno", "top": 0, "left": 0, "attrs": {} },
     { "type": "wokwi-hc-sr04", "id": "ultrasonic", "top": -150, "left": 150, "attrs": {} },
     { "type": "wokwi-servo", "id": "servo", "top": 100, "left": 150, "attrs": {} },
-    { "type": "wokwi-motor", "id": "motor_FL", "top": -50, "left": -200, "attrs": {} },
-    { "type": "wokwi-motor", "id": "motor_BL", "top": 100, "left": -200, "attrs": {} },
-    { "type": "wokwi-motor", "id": "motor_FR", "top": -50, "left": 250, "attrs": {} },
-    { "type": "wokwi-motor", "id": "motor_BR", "top": 100, "left": 250, "attrs": {} }
+    
+    { "type": "wokwi-led", "id": "led_L_FWD", "top": -50, "left": -150, "attrs": { "color": "green", "label": "Left FWD (2)" } },
+    { "type": "wokwi-led", "id": "led_L_REV", "top": 0, "left": -150, "attrs": { "color": "red", "label": "Left REV (3)" } },
+    { "type": "wokwi-led", "id": "led_R_FWD", "top": -50, "left": 300, "attrs": { "color": "green", "label": "Right FWD (4)" } },
+    { "type": "wokwi-led", "id": "led_R_REV", "top": 0, "left": 300, "attrs": { "color": "red", "label": "Right REV (7)" } }
   ],
   "connections": [
     [ "ultrasonic:VCC", "uno:5V", "red", [ "v0" ] ],
@@ -20,14 +21,14 @@
     [ "servo:GND", "uno:GND", "black", [ "v0" ] ],
     [ "servo:PWM", "uno:11", "yellow", [ "v0" ] ],
     
-    [ "motor_FL:1", "uno:2", "orange", [ "v0" ] ],
-    [ "motor_FL:2", "uno:3", "orange", [ "v0" ] ],
-    [ "motor_BL:1", "uno:2", "orange", [ "v0" ] ],
-    [ "motor_BL:2", "uno:3", "orange", [ "v0" ] ],
+    [ "uno:2", "led_L_FWD:A", "orange", [ "v0" ] ],
+    [ "uno:3", "led_L_REV:A", "orange", [ "v0" ] ],
+    [ "led_L_FWD:C", "uno:GND", "black", [ "v0" ] ],
+    [ "led_L_REV:C", "uno:GND", "black", [ "v0" ] ],
     
-    [ "motor_FR:1", "uno:4", "purple", [ "v0" ] ],
-    [ "motor_FR:2", "uno:7", "purple", [ "v0" ] ],
-    [ "motor_BR:1", "uno:4", "purple", [ "v0" ] ],
-    [ "motor_BR:2", "uno:7", "purple", [ "v0" ] ]
+    [ "uno:4", "led_R_FWD:A", "purple", [ "v0" ] ],
+    [ "uno:7", "led_R_REV:A", "purple", [ "v0" ] ],
+    [ "led_R_FWD:C", "uno:GND", "black", [ "v0" ] ],
+    [ "led_R_REV:C", "uno:GND", "black", [ "v0" ] ]
   ]
 }

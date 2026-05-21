@@ -21,6 +21,7 @@ const char* mqtt_server = "broker.hivemq.com";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
+HardwareSerial unoSerial(2); // UART2 (RX=GPIO16, TX=GPIO17)
 
 // MQTT Topics
 const char* topic_control = "grup2/device1/control";
@@ -132,6 +133,10 @@ void setup() {
 
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
+
+  // Initialize ESP32 UART2 (RX=GPIO16, TX=GPIO17) to communicate with Uno
+  unoSerial.begin(9600, SERIAL_8N1, 16, 17);
+  Serial.println("ESP32 UART Link with Uno Started (RX=16, TX=17)");
 }
 
 // ================= LOOP =================
@@ -143,4 +148,27 @@ void loop() {
   }
 
   client.loop();
+
+  // Read UART from Arduino Uno
+  if (unoSerial.available()) {
+    String message = unoSerial.readStringUntil('\n');
+    message.trim();
+
+    Serial.print("Received from Arduino Uno: ");
+    Serial.println(message);
+
+    if (message.indexOf("DIST=") >= 0 &&
+        message.indexOf("MODE=") >= 0 &&
+        message.indexOf("TURN=") >= 0) {
+      Serial.println("✅ Message format valid");
+      unoSerial.println("ACK");
+      
+      // Forward the status message to MQTT status topic
+      client.publish(topic_status, message.c_str());
+      Serial.println("Forwarded message to MQTT topic");
+    } else {
+      Serial.println("❌ Message format invalid");
+      unoSerial.println("ERROR");
+    }
+  }
 }

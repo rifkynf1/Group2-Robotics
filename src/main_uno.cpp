@@ -5,12 +5,11 @@
 const int TRIG_PIN = 9;
 const int ECHO_PIN = 10;
 const int SERVO_PIN = 11;
-const int ENA = 5;
-const int IN1 = 2;
-const int IN2 = 3;
-const int IN3 = 4;
-const int IN4 = 7;
-const int ENB = 6;
+
+const int L_DIR = 2;
+const int R_DIR = 4; 
+const int L_STEP = 5;
+const int R_STEP = 6;
 
 // SoftwareSerial for ESP32 link (RX = 8, TX = 12)
 SoftwareSerial espSerial(8, 12);
@@ -19,7 +18,6 @@ const int OBSTACLE_THRESHOLD = 20;
 int currentDistance = 0;
 int leftDistance = 0;
 int rightDistance = 0;
-int motorSpeed = 150;
 
 Servo sensorServo;
 String currentTurn = "FORWARD";
@@ -27,10 +25,11 @@ String currentTurn = "FORWARD";
 int getDistance();
 int lookRight();
 int lookLeft();
-void moveForward();
-void moveBackward();
-void turnLeft();
-void turnRight();
+void setDirectionForward();
+void setDirectionBackward();
+void setDirectionLeft();
+void setDirectionRight();
+void runMotors(int duration_ms);
 void stopRobot();
 void sendStatusToESP32();
 
@@ -48,12 +47,11 @@ void setup() {
   sensorServo.write(90); 
   delay(500);
 
-  pinMode(ENA, OUTPUT);
-  pinMode(IN1, OUTPUT);
-  pinMode(IN2, OUTPUT);
-  pinMode(IN3, OUTPUT);
-  pinMode(IN4, OUTPUT);
-  pinMode(ENB, OUTPUT);
+  // Initialize Stepper Pins
+  pinMode(L_DIR, OUTPUT);
+  pinMode(R_DIR, OUTPUT);
+  pinMode(L_STEP, OUTPUT);
+  pinMode(R_STEP, OUTPUT);
 
   Serial.println("Arduino Uno Obstacle Avoidance Robot Started");
   Serial.println("SoftwareSerial Link to ESP32 Started (RX=8, TX=12)");
@@ -70,10 +68,11 @@ void loop() {
     delay(300); 
     
     Serial.println("Moving Backward...");
-    moveBackward();
+    setDirectionBackward();
     currentTurn = "BACKWARD";
     sendStatusToESP32();
-    delay(400); 
+    runMotors(400); // Replaces delay(400) to keep motors pulsing
+    
     stopRobot();
     currentTurn = "STOP";
     sendStatusToESP32();
@@ -90,22 +89,22 @@ void loop() {
     
     if (rightDistance > leftDistance && rightDistance > OBSTACLE_THRESHOLD) {
       Serial.println("Path Clear: Turning Right");
-      turnRight();
+      setDirectionRight();
       currentTurn = "RIGHT";
       sendStatusToESP32();
-      delay(500);
+      runMotors(500); 
     } else if (leftDistance > rightDistance && leftDistance > OBSTACLE_THRESHOLD) {
       Serial.println("Path Clear: Turning Left");
-      turnLeft();
+      setDirectionLeft();
       currentTurn = "LEFT";
       sendStatusToESP32();
-      delay(500);
+      runMotors(500); 
     } else {
       Serial.println("Blocked: Turning Around");
-      turnRight();
+      setDirectionRight();
       currentTurn = "RIGHT";
       sendStatusToESP32();
-      delay(1000); 
+      runMotors(1000); 
     }
     
     stopRobot();
@@ -114,8 +113,10 @@ void loop() {
     delay(200);
 
   } else {
-    moveForward();
+    // Normal Operation
+    setDirectionForward();
     currentTurn = "FORWARD";
+    runMotors(20);
   }
   
   // Periodic status update to ESP32
@@ -130,8 +131,6 @@ void loop() {
     Serial.print("ESP32 Response: ");
     Serial.println(response);
   }
-
-  delay(50);
 }
 
 int getDistance() {
@@ -160,49 +159,43 @@ int lookLeft() {
   return distance;
 }
 
-void moveForward() {
-  analogWrite(ENA, motorSpeed);
-  analogWrite(ENB, motorSpeed);
-  digitalWrite(IN1, HIGH);
-  digitalWrite(IN2, LOW);
-  digitalWrite(IN3, HIGH);
-  digitalWrite(IN4, LOW);
+// Note: If motors face opposite directions on a chassis, 
+// one side must usually spin "backward" to push the robot forward.
+void setDirectionForward() {
+  digitalWrite(L_DIR, HIGH);
+  digitalWrite(R_DIR, LOW); 
 }
 
-void moveBackward() {
-  analogWrite(ENA, motorSpeed);
-  analogWrite(ENB, motorSpeed);
-  digitalWrite(IN1, LOW);
-  digitalWrite(IN2, HIGH);
-  digitalWrite(IN3, LOW);
-  digitalWrite(IN4, HIGH);
+void setDirectionBackward() {
+  digitalWrite(L_DIR, LOW);
+  digitalWrite(R_DIR, HIGH);
 }
 
-void turnLeft() {
-  analogWrite(ENA, motorSpeed);
-  analogWrite(ENB, motorSpeed);
-  digitalWrite(IN1, LOW);
-  digitalWrite(IN2, HIGH);
-  digitalWrite(IN3, HIGH);
-  digitalWrite(IN4, LOW);
+void setDirectionLeft() {
+  digitalWrite(L_DIR, LOW);
+  digitalWrite(R_DIR, LOW);
 }
 
-void turnRight() {
-  analogWrite(ENA, motorSpeed);
-  analogWrite(ENB, motorSpeed);
-  digitalWrite(IN1, HIGH);
-  digitalWrite(IN2, LOW);
-  digitalWrite(IN3, LOW);
-  digitalWrite(IN4, HIGH);
+void setDirectionRight() {
+  digitalWrite(L_DIR, HIGH);
+  digitalWrite(R_DIR, HIGH);
+}
+
+void runMotors(int duration_ms) {
+  unsigned long start = millis();
+  while(millis() - start < duration_ms) {
+    digitalWrite(L_STEP, HIGH);
+    digitalWrite(R_STEP, HIGH);
+    delayMicroseconds(1000);
+    digitalWrite(L_STEP, LOW);
+    digitalWrite(R_STEP, LOW);
+    delayMicroseconds(1000);
+  }
 }
 
 void stopRobot() {
-  analogWrite(ENA, 0);
-  analogWrite(ENB, 0);
-  digitalWrite(IN1, LOW);
-  digitalWrite(IN2, LOW);
-  digitalWrite(IN3, LOW);
-  digitalWrite(IN4, LOW);
+  digitalWrite(L_STEP, LOW);
+  digitalWrite(R_STEP, LOW);
 }
 
 void sendStatusToESP32() {

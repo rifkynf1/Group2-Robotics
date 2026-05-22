@@ -1,5 +1,0 @@
-[wokwi]
-version = 1
-serialConsole = true
-firmware = ".pio/build/esp32dev/firmware.bin"
-elf = ".pio/build/esp32dev/firmware.elf"

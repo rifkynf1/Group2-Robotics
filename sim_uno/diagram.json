@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "author": "Group 2 Robotics",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-arduino-uno", "id": "uno", "top": 0, "left": 0, "attrs": {} },
+    { "type": "wokwi-hc-sr04", "id": "ultrasonic", "top": -150, "left": 150, "attrs": {} },
+    { "type": "wokwi-servo", "id": "servo", "top": 100, "left": 150, "attrs": {} },
+    
+    { "type": "wokwi-a4988", "id": "drv_L", "top": 50, "left": -200, "attrs": {} },
+    { "type": "wokwi-a4988", "id": "drv_R", "top": 50, "left": 300, "attrs": {} },
+    
+    { "type": "wokwi-stepper-motor", "id": "step_FL", "top": -100, "left": -350, "attrs": {"size": "17"} },
+    { "type": "wokwi-stepper-motor", "id": "step_RL", "top": 150, "left": -350, "attrs": {"size": "17"} },
+    { "type": "wokwi-stepper-motor", "id": "step_FR", "top": -100, "left": 450, "attrs": {"size": "17"} },
+    { "type": "wokwi-stepper-motor", "id": "step_RR", "top": 150, "left": 450, "attrs": {"size": "17"} }
+  ],
+  "connections": [
+    [ "ultrasonic:VCC", "uno:5V", "red", [ "v0" ] ],
+    [ "ultrasonic:GND", "uno:GND", "black", [ "v0" ] ],
+    [ "ultrasonic:TRIG", "uno:9", "green", [ "v0" ] ],
+    [ "ultrasonic:ECHO", "uno:10", "blue", [ "v0" ] ],
+    
+    [ "servo:V+", "uno:5V", "red", [ "v0" ] ],
+    [ "servo:GND", "uno:GND", "black", [ "v0" ] ],
+    [ "servo:PWM", "uno:11", "yellow", [ "v0" ] ],
+    
+    [ "drv_L:VDD", "uno:5V", "red", [ "v0" ] ],
+    [ "drv_L:VMOT", "uno:5V", "red", [ "v0" ] ],
+    [ "drv_L:GND.1", "uno:GND", "black", [ "v0" ] ],
+    [ "drv_L:GND.2", "uno:GND", "black", [ "v0" ] ],
+    [ "drv_L:STEP", "uno:5", "orange", [ "v0" ] ],
+    [ "drv_L:DIR", "uno:2", "purple", [ "v0" ] ],
+    [ "drv_L:RESET", "drv_L:SLEEP", "yellow", [ "v0" ] ],
+    
+    [ "drv_R:VDD", "uno:5V", "red", [ "v0" ] ],
+    [ "drv_R:VMOT", "uno:5V", "red", [ "v0" ] ],
+    [ "drv_R:GND.1", "uno:GND", "black", [ "v0" ] ],
+    [ "drv_R:GND.2", "uno:GND", "black", [ "v0" ] ],
+    [ "drv_R:STEP", "uno:6", "orange", [ "v0" ] ],
+    [ "drv_R:DIR", "uno:4", "purple", [ "v0" ] ],
+    [ "drv_R:RESET", "drv_R:SLEEP", "yellow", [ "v0" ] ],
+
+    [ "drv_L:1A", "step_FL:A+", "green", [ "v0" ] ],
+    [ "drv_L:1B", "step_FL:A-", "green", [ "v0" ] ],
+    [ "drv_L:2A", "step_FL:B+", "blue", [ "v0" ] ],
+    [ "drv_L:2B", "step_FL:B-", "blue", [ "v0" ] ],
+    [ "drv_L:1A", "step_RL:A+", "green", [ "v0" ] ],
+    [ "drv_L:1B", "step_RL:A-", "green", [ "v0" ] ],
+    [ "drv_L:2A", "step_RL:B+", "blue", [ "v0" ] ],
+    [ "drv_L:2B", "step_RL:B-", "blue", [ "v0" ] ],
+
+    [ "drv_R:1A", "step_FR:A+", "green", [ "v0" ] ],
+    [ "drv_R:1B", "step_FR:A-", "green", [ "v0" ] ],
+    [ "drv_R:2A", "step_FR:B+", "blue", [ "v0" ] ],
+    [ "drv_R:2B", "step_FR:B-", "blue", [ "v0" ] ],
+    [ "drv_R:1A", "step_RR:A+", "green", [ "v0" ] ],
+    [ "drv_R:1B", "step_RR:A-", "green", [ "v0" ] ],
+    [ "drv_R:2A", "step_RR:B+", "blue", [ "v0" ] ],
+    [ "drv_R:2B", "step_RR:B-", "blue", [ "v0" ] ]
+  ]
+}

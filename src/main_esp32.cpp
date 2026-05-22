@@ -1,39 +1,56 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
-
-/*
-========================================
-   GROUP 2 ROBOTICS
-   ESP32 MQTT IOT CONTROLLER
-========================================
-*/
-
-// ================= WIFI CONFIG =================
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
 
 const char* ssid = "Wokwi-GUEST";
 const char* password = "";
-
-// ================= MQTT CONFIG =================
-
 const char* mqtt_server = "broker.hivemq.com";
-
-#define LED 2
 
 WiFiClient espClient;
 PubSubClient client(espClient);
-HardwareSerial unoSerial(2); // UART2 (RX=GPIO16, TX=GPIO17)
+HardwareSerial unoSerial(2);
 
-// MQTT Topics
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
 const char* topic_control = "grup2/device1/control";
 const char* topic_status  = "grup2/device1/status";
 
-// ================= WIFI CONNECT =================
+unsigned long lastReconnectAttempt = 0;
+
+String fit16(const String& text) {
+  if (text.length() <= 16) return text;
+  return text.substring(0, 16);
+}
+
+void showLCD(const String& line1, const String& line2 = "") {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(fit16(line1));
+  lcd.setCursor(0, 1);
+  lcd.print(fit16(line2));
+}
+
+void showWaitingState() {
+  showLCD("MQTT CONNECTED!", "Waiting 4 Data..");
+}
+
+void showMessagePreview(const String& title, String msg) {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(fit16(title));
+  lcd.setCursor(0, 1);
+  lcd.print(fit16(msg));
+}
+
+bool isValidRobotMessage(const String& message) {
+  return message.indexOf("DIST=") >= 0 &&
+         message.indexOf("MODE=") >= 0 &&
+         message.indexOf("TURN=") >= 0;
+}
 
 void setup_wifi() {
-
-  Serial.println();
-  Serial.print("Connecting WiFi");
-
+  showLCD("WiFi Connecting.", "");
   WiFi.begin(ssid, password);
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -41,134 +58,146 @@ void setup_wifi() {
     Serial.print(".");
   }
 
-  Serial.println("\n✅ WiFi Connected");
-  Serial.print("IP Address: ");
+  Serial.println();
+  Serial.print("WiFi connected. IP: ");
   Serial.println(WiFi.localIP());
+
+  showLCD("WIFI CONNECTED!", "");
+  delay(1000);
 }
 
-// ================= MQTT CALLBACK =================
-
 void callback(char* topic, byte* payload, unsigned int length) {
-
-  Serial.println("\n📩 MQTT Message Received");
-
   String message = "";
-
   for (unsigned int i = 0; i < length; i++) {
     message += (char)payload[i];
   }
 
-  Serial.print("Topic   : ");
-  Serial.println(topic);
-
-  Serial.print("Message : ");
+  Serial.print("MQTT RX [");
+  Serial.print(topic);
+  Serial.print("]: ");
   Serial.println(message);
 
-  // ===== LED CONTROL =====
-
   if (message == "ON") {
-
-    digitalWrite(LED, HIGH);
-    Serial.println("💡 LED ON");
-
-    client.publish(topic_status, "LED ON");
-  }
-
-  else if (message == "OFF") {
-
-    digitalWrite(LED, LOW);
-    Serial.println("💡 LED OFF");
-
-    client.publish(topic_status, "LED OFF");
+    showLCD("MQTT: RECV CMD", "TURN LED ON");
+    client.publish(topic_status, "CMD:ON");
+    delay(1000);
+    showWaitingState();
+  } else if (message == "OFF") {
+    showLCD("MQTT: RECV CMD", "TURN LED OFF");
+    client.publish(topic_status, "CMD:OFF");
+    delay(1000);
+    showWaitingState();
   }
 }
 
-// ================= MQTT RECONNECT =================
-
 void reconnect() {
+  if (client.connected()) return;
+  if (millis() - lastReconnectAttempt < 5000) return;
 
-  while (!client.connected()) {
+  lastReconnectAttempt = millis();
 
-    Serial.print("Connecting MQTT...");
+  showLCD("MQTT Connecting.", "");
+  String clientId = "ESP32-Grup2-" + String(random(0xffff), HEX);
 
-    String clientId = "ESP32-Grup2-";
-    clientId += String(random(0xffff), HEX);
+  if (client.connect(clientId.c_str())) {
+    client.subscribe(topic_control);
+    client.publish(topic_status, "Device Online");
 
-    if (client.connect(clientId.c_str())) {
+    Serial.println("MQTT connected.");
+    showWaitingState();
+  } else {
+    Serial.print("MQTT failed, rc=");
+    Serial.println(client.state());
+    showLCD("MQTT RETRYING..", "");
+  }
+}
 
-      Serial.println("✅ MQTT Connected");
+void processIncomingData(String message, bool fromUno) {
+  message.trim();
+  if (message.length() == 0) return;
 
-      client.subscribe(topic_control);
-      client.publish(topic_status, "Device Online");
+  Serial.print(fromUno ? "UNO -> ESP32: " : "TERM -> ESP32: ");
+  Serial.println(message);
 
-      Serial.println("Subscribed to control topic");
+  if (isValidRobotMessage(message)) {
+    if (fromUno) {
+      unoSerial.println("ACK");
+    }
 
+    bool ok = false;
+    if (client.connected()) {
+      ok = client.publish(topic_status, message.c_str());
+    }
+
+    if (ok) {
+      showMessagePreview("MQTT: SENT!", message);
+      Serial.println("Published to MQTT.");
     } else {
+      showMessagePreview("MQTT OFFLINE", message);
+      Serial.println("Publish skipped/offline.");
+    }
 
-      Serial.print("Failed, rc=");
-      Serial.print(client.state());
-      Serial.println(" retry in 5 sec");
+    delay(1200);
 
-      delay(5000);
+    if (client.connected()) {
+      showWaitingState();
+    } else {
+      showLCD("MQTT RETRYING..", "Waiting 4 Data..");
+    }
+  } else {
+    if (fromUno) {
+      unoSerial.println("ERROR");
+    }
+
+    showLCD("UART ERROR", "Invalid Format");
+    Serial.println("Invalid input format.");
+    delay(1200);
+
+    if (client.connected()) {
+      showWaitingState();
+    } else {
+      showLCD("MQTT RETRYING..", "Waiting 4 Data..");
     }
   }
 }
 
-// ================= SETUP =================
-
 void setup() {
-
   Serial.begin(115200);
-  delay(1500);
+  unoSerial.begin(9600, SERIAL_8N1, 16, 17);
 
-  Serial.println("\n=================================");
-  Serial.println(" GROUP 2 ROBOTICS STARTING...");
-  Serial.println(" ESP32 MQTT DEVICE ONLINE");
-  Serial.println("=================================");
+  Wire.begin(21, 22);
+  lcd.init();
+  lcd.backlight();
 
-  pinMode(LED, OUTPUT);
-  digitalWrite(LED, LOW);
+  randomSeed(micros());
+
+  showLCD("Booting ESP32...", "");
+  delay(1000);
 
   setup_wifi();
 
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
 
-  // Initialize ESP32 UART2 (RX=GPIO16, TX=GPIO17) to communicate with Uno
-  unoSerial.begin(9600, SERIAL_8N1, 16, 17);
-  Serial.println("ESP32 UART Link with Uno Started (RX=16, TX=17)");
+  Serial.println("Type DIST=15,MODE=AUTO,TURN=LEFT then press Enter");
+  reconnect();
 }
 
-// ================= LOOP =================
-
 void loop() {
+  if (unoSerial.available()) {
+    String msg = unoSerial.readStringUntil('\n');
+    processIncomingData(msg, true);
+  }
+
+  if (Serial.available()) {
+    String msg = Serial.readString();
+    msg.trim();
+    processIncomingData(msg, false);
+  }
 
   if (!client.connected()) {
     reconnect();
   }
 
   client.loop();
-
-  // Read UART from Arduino Uno
-  if (unoSerial.available()) {
-    String message = unoSerial.readStringUntil('\n');
-    message.trim();
-
-    Serial.print("Received from Arduino Uno: ");
-    Serial.println(message);
-
-    if (message.indexOf("DIST=") >= 0 &&
-        message.indexOf("MODE=") >= 0 &&
-        message.indexOf("TURN=") >= 0) {
-      Serial.println("✅ Message format valid");
-      unoSerial.println("ACK");
-      
-      // Forward the status message to MQTT status topic
-      client.publish(topic_status, message.c_str());
-      Serial.println("Forwarded message to MQTT topic");
-    } else {
-      Serial.println("❌ Message format invalid");
-      unoSerial.println("ERROR");
-    }
-  }
 }

@@ -3,13 +3,13 @@
   "author": "Group 2 Robotics",
   "editor": "wokwi",
   "parts": [
-    {
-      "type": "board-esp32-devkit-v1",
-      "id": "esp",
-      "top": 0,
-      "left": 0,
-      "attrs": {}
-    }
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    { "type": "wokwi-lcd1602", "id": "lcd", "top": -150, "left": -250, "attrs": { "pins": "i2c" } }
   ],
-  "connections": []
+  "connections": [
+    [ "lcd:SDA", "esp:21", "green", [ "v0" ] ],
+    [ "lcd:SCL", "esp:22", "blue", [ "v0" ] ],
+    [ "lcd:VCC", "esp:3V3", "red", [ "v0" ] ],
+    [ "lcd:GND", "esp:GND.2", "black", [ "v0" ] ]
+  ]
 }
